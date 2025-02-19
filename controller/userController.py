@@ -15,7 +15,7 @@ router = APIRouter(
 
 
 @router.get("/", response_model= List[user.baseUser])
-async def get_users(db: AsyncSession = Depends(get_db), client : str = Depends(get_current_user)):
+async def get_users(db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
     # result = await db.execute(text('SELECT * FROM user'))
     # users = result.mappings().all()
     result = await db.execute(select(model.User))
@@ -25,7 +25,7 @@ async def get_users(db: AsyncSession = Depends(get_db), client : str = Depends(g
 
 
 @router.get("/{name}", response_model=user.baseUser)
-async def get_user(name : str, db: AsyncSession = Depends(get_db), client : str = Depends(get_current_user)):
+async def get_user(name : str, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
     # result = await db.execute(text("SELECT * FROM user WHERE id = :id"), {"id": id})
     # user = result.mappings().first()  
     result = await db.execute(select(model.User).where(model.User.username == name))
@@ -37,9 +37,12 @@ async def get_user(name : str, db: AsyncSession = Depends(get_db), client : str 
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=user.baseUser)
-async def create_user(user : user.createUser, db: AsyncSession = Depends(get_db), client : str = Depends(get_current_user)):
+async def create_user(user : user.createUser, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
     # query = text("INSERT INTO users (username, password, email, jobId) VALUES (:username, :password, :email, :jobId)")
     # await db.execute(query, {"username": user.username, "password": user.password, "email": user.email, "jobId" : user.jobId})
+    if(client.role == False):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized access")
+    
     new_user = model.User(
         username=user.username,
         password=hash(user.password),  
@@ -55,9 +58,12 @@ async def create_user(user : user.createUser, db: AsyncSession = Depends(get_db)
 
 
 @router.put("/", status_code=status.HTTP_202_ACCEPTED, response_model=user.baseUser)
-async def update_user(user : user.updateUser, db: AsyncSession = Depends(get_db), client : str = Depends(get_current_user)):
+async def update_user(user : user.updateUser, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
     # query = text("UPDATE user SET username = :username, password = :password, email = :email WHERE id = :id")
     # result = await db.execute(query, {"id": user.id, "username": user.username, "password":user.password, "email": user.email})
+    if(client.role == False):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized access")
+    
     query = (
         update(model.User)
         .where(model.User.jobId == user.jobId)
@@ -74,9 +80,12 @@ async def update_user(user : user.updateUser, db: AsyncSession = Depends(get_db)
 
 
 @router.delete("/{name}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(name : str, db: AsyncSession = Depends(get_db), client : str = Depends(get_current_user)):
+async def delete_user(name : str, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
     # query = text("DELETE FROM user WHERE id = :id")
     # result = await db.execute(query, {"id": id})
+    if(client.role == False):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized access")
+    
     result = await db.execute(delete(model.User).where(model.User.username == name))
     if result.rowcount == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")

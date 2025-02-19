@@ -1,6 +1,10 @@
 from passlib.context import CryptContext
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from model import User
+from config.database import get_db
 from jwt.exceptions import InvalidTokenError
 from datetime import datetime, timedelta
 from schemas.token import TokenData
@@ -49,8 +53,10 @@ def verify_access_token(token : str, credentials_exception):
     return token_data
     
     
-def get_current_user(token : str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid Aceess Token",headers= {"WWW-Authenticate" : "Bearer"})
-    # TODO
-    # work here and use this method later to check user permissions and authorization
-    return verify_access_token(token, credentials_exception)
+async def get_current_user(token : str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
+    credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid Aceess Token", headers= {"WWW-Authenticate" : "Bearer"})
+    token = verify_access_token(token, credentials_exception)
+    
+    result = await db.execute(select(User).where(User.username == token.username))
+    user = result.scalar_one_or_none()
+    return user
