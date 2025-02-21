@@ -3,7 +3,7 @@ from fastapi import status, HTTPException, Response, Depends, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from config.database import get_db
-from sqlalchemy import text, delete, update
+from sqlalchemy import delete, update
 from schemas import user
 from utils import hash, get_current_user
 import model
