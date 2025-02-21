@@ -6,14 +6,19 @@ class baseStudent(BaseModel):
     email : EmailStr
     phone : str
     department : str
+    batch : int
+    studentId : str
     
     model_config = {"from_attributes": True}
     
     
 class createStudent(baseStudent):
-    batch : int
-    studentId : str
-    
-    
-class updateStudent(baseStudent):
     pass
+    
+    
+class updateStudent(BaseModel):
+    firstName : str
+    lastName : str
+    email : EmailStr
+    phone : str
+    department : str

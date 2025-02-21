@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from config.database import check_db_connection, create_tables, engine
-from controller import userController, authController
+from controller import userController, authController, studentController, bookController
 import asyncio
 import model
 
@@ -19,6 +19,8 @@ async def shutdown():
     
 app.include_router(userController.router)
 app.include_router(authController.router)
+app.include_router(studentController.router)
+app.include_router(bookController.router)
 
 @app.get("/")
 def root():
