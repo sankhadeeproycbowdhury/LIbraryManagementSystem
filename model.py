@@ -13,7 +13,7 @@ class User(Base):
     username = Column(String(255), nullable=False)
     password = Column(String(255), nullable=False)
     email = Column(String(255), nullable=False, unique=True)
-    jobId = Column(String(255), nullable=True)
+    jobId = Column(String(255), nullable=True, unique=True)
     role = Column(Boolean, nullable=True, server_default=text('FALSE'))
 
     issues = relationship("Issue", back_populates="librarian") 
@@ -68,13 +68,13 @@ class Issue(Base):
     __tablename__ = "book_issue"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    book_id = Column(Integer, ForeignKey("books.id", ondelete="CASCADE"), nullable=False)
-    student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    book_id = Column(String(255), ForeignKey("books.isbn", ondelete="CASCADE"), nullable=False)
+    student_id = Column(String(255), ForeignKey("students.studentId", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(255), ForeignKey("users.jobId", ondelete="SET NULL"), nullable=True)
 
     issue_date = Column(Date, nullable=False, server_default=func.current_date())
     due_date = Column(Date, nullable=False, default=get_due_date)
-    return_date = Column(Date, nullable=True)  
+    return_date = Column(Date, nullable=True, default=None)  
     status = Column(Enum(IssueStatus), nullable=False, default=IssueStatus.ISSUED)
     renewal_count = Column(Integer, nullable=False, default=0)
     
@@ -90,7 +90,8 @@ class Issue(Base):
             self.due_date = self.due_date + timedelta(days=extension_days)  
             self.renewal_count += 1
             self.status = IssueStatus.RENEWED
-            session.add(self)  
+            session.add(self) 
+            session.commit()
             return True
         return False
 

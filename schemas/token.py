@@ -9,3 +9,4 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username : str
     role : bool
+    jobId : str

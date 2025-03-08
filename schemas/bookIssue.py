@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 from datetime import date
 from enum import Enum
@@ -9,21 +10,21 @@ class IssueStatus(str, Enum):
 
        
 class createBookIssue(BaseModel):
-    book_id : int
-    student_id : int
-    user_id : int
+    book_id : str
+    student_id : str
     
 class baseBookIssue(createBookIssue):
+    user_id : str
     issue_date : date
     status : IssueStatus
     due_date : date
-    return_date : date | None = None
-    renewal_count: int = 0
+    return_date: Optional[date] = None
+    renewal_count: int
 
-class updateBookIssue(baseBookIssue):
-    user_id : int 
-    return_date : date | None
+class updateBookIssue(BaseModel):
+    user_id : str 
+    return_date : date = None
     renewal_count: int = 0
-    due_date : date | None
+    due_date : date = None
     status : IssueStatus
     

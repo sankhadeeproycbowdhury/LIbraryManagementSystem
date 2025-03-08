@@ -39,10 +39,11 @@ def verify_access_token(token : str, credentials_exception):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username : str = payload.get('username')
         role : bool = payload.get('role')
+        jobId : str = payload.get('jobId')
         
         if username is None or role is None:
             raise credentials_exception
-        token_data = TokenData(username = username, role = role) 
+        token_data = TokenData(username = username, role = role, jobId = jobId) 
     except InvalidTokenError:
         raise credentials_exception
     
