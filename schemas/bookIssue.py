@@ -14,6 +14,7 @@ class createBookIssue(BaseModel):
     student_id : str
     
 class baseBookIssue(createBookIssue):
+    id : int
     user_id : str
     issue_date : date
     status : IssueStatus
@@ -22,9 +23,6 @@ class baseBookIssue(createBookIssue):
     renewal_count: int
 
 class updateBookIssue(BaseModel):
-    user_id : str 
-    return_date : date = None
-    renewal_count: int = 0
-    due_date : date = None
     status : IssueStatus
+    renewal_count: int = 0
     
