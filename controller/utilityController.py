@@ -4,9 +4,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from config.database import get_db
 from sqlalchemy import update, or_, func
+from controller.bookController import get_book_byISBN, update_book
 from datetime import date, timedelta
 from utils import get_current_user
 from schemas import bookIssue
+from schemas.book import updateBook
 import model
 
 
@@ -53,7 +55,7 @@ async def create_issue(issue : bookIssue.createBookIssue, db: AsyncSession = Dep
     )
     count_result = await db.execute(count_query)
     issued_books_count = count_result.scalar()    
-    if issued_books_count >= 14:
+    if issued_books_count >= 10:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student has already issued 10 books")
 
     
@@ -62,10 +64,17 @@ async def create_issue(issue : bookIssue.createBookIssue, db: AsyncSession = Dep
         student_id=issue.student_id,
         user_id=client.jobId
     )
+    
     db.add(new_issue)
     await db.commit()
     await db.refresh(new_issue)
-    print(client.jobId)
+    
+    book = await get_book_byISBN(issue.book_id, db, client)
+    print(book)
+    res = await update_book(issue.book_id, updateBook(edition=book.edition, publication=book.publication, quantity=book.quantity,
+    price=book.price, rack_no=book.rack_no, available=book.available - 1), db, client)
+    print(res)
+    
     return {"message": "Book Issued Successfully"}
 
 
@@ -84,6 +93,9 @@ async def update_issue(id : int, issue : bookIssue.updateBookIssue, db: AsyncSes
     
     if issue.status == "Returned":
         update_values["return_date"] = date.today() 
+        book = await get_book_byISBN(issue_exists.book_id, db, client)
+        await update_book(issue_exists.book_id, updateBook(edition=book.edition, publication=book.publication, quantity=book.quantity,
+        price=book.price, rack_no=book.rack_no, available=book.available + 1), db, client)
     elif issue.status == "Renewed":
         update_values["renewal_count"] = issue_exists.renewal_count + 1 
         update_values["due_date"] = issue_exists.due_date + timedelta(days=30) 
@@ -91,5 +103,6 @@ async def update_issue(id : int, issue : bookIssue.updateBookIssue, db: AsyncSes
     update_query = update(model.Issue).where(model.Issue.id == id).values(update_values)
     await db.execute(update_query)
     await db.commit()
+    
     return {"message": "Issue updated successfully"}
 

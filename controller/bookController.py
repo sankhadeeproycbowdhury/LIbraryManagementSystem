@@ -20,24 +20,45 @@ async def get_books(db: AsyncSession = Depends(get_db), client : int = Depends(g
     books = result.scalars().all()
     return books
 
+@router.get("/available", response_model= List[book.baseBook])
+async def get_books(db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
+    result = await db.execute(select(model.Book).where(model.Book.available > 0))
+    books = result.scalars().all()
+    return books
 
-@router.get("/byName/{title}", response_model=book.baseBook)
-async def get_book(title : str, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
+
+@router.get("/byName/{title}", response_model=List[book.baseBook])
+async def get_book_byName(title : str, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
     result = await db.execute(select(model.Book).where(model.Book.title == title))
-    book = result.scalar_one_or_none()
+    book = result.scalars().all()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
     return book
 
 
 @router.get("/byISBN/{isbn}", response_model=book.baseBook)
-async def get_book(isbn : str, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
+async def get_book_byISBN(isbn : str, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
     result = await db.execute(select(model.Book).where(model.Book.isbn == str(isbn)))
     book = result.scalar_one_or_none()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
     return book
 
+@router.get("/byAuthor/{author}", response_model=List[book.baseBook])
+async def get_book_byAuthor(author : str, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
+    result = await db.execute(select(model.Book).where(model.Book.author == author))
+    book = result.scalars().all()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    return book
+
+@router.get("/byCategory/{category}", response_model=List[book.baseBook])
+async def get_book_byCategory(category : str, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
+    result = await db.execute(select(model.Book).where(model.Book.category == category))
+    book = result.scalars().all()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    return book
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=book.baseBook)
 async def create_book(book : book.createBook, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)): 
