@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config.database import get_db
 from sqlalchemy.future import select
 from schemas import auth, token
-from utils import verify, create_access_token
+from utils import verify, create_access_token, send_otp, get_current_user
 import model
 
 router = APIRouter(
@@ -21,4 +21,13 @@ async def login(userCredentials : OAuth2PasswordRequestForm = Depends(), db: Asy
     token = create_access_token(data={"username" : user.username, "role" : user.role, "jobId" : user.jobId})
     
     return {"token_type" : "bearer", "token" : token}
+
+
+@router.get('/otp')
+async def get_otp(auth : auth.userOTP, client : int = Depends(get_current_user)):
+    otp = await send_otp(auth.email, auth.name)
+    if otp is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="OTP not sent")
+    return {"message": f"Your OTP is {otp}"}
+
 

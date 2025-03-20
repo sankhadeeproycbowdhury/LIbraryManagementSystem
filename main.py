@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from config.database import check_db_connection, create_tables, engine
 from controller import userController, authController, studentController, bookController, utilityController
+from utils import check_and_send_reminders
 import asyncio
 import model
 
@@ -11,6 +12,7 @@ app = FastAPI()
 async def startup():
     await check_db_connection()
     await create_tables()
+    asyncio.create_task(check_and_send_reminders())
     
 @app.on_event("shutdown")
 async def shutdown():
