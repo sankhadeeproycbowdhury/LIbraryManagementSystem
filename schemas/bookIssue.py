@@ -21,6 +21,7 @@ class baseBookIssue(createBookIssue):
     due_date : date
     return_date: Optional[date] = None
     renewal_count: int
+    reminder_sent : bool
 
 class updateBookIssue(BaseModel):
     status : IssueStatus

@@ -97,6 +97,8 @@ async def update_issue(id : int, issue : bookIssue.updateBookIssue, db: AsyncSes
         await update_book(issue_exists.book_id, updateBook(edition=book.edition, publication=book.publication, quantity=book.quantity,
         price=book.price, rack_no=book.rack_no, available=book.available + 1), db, client)
     elif issue.status == "Renewed":
+        if int(issue_exists.renewal_count) == 3:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="MAX_RENEWAL count achived")
         update_values["renewal_count"] = issue_exists.renewal_count + 1 
         update_values["due_date"] = issue_exists.due_date + timedelta(days=30) 
 

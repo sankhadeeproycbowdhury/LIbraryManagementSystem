@@ -2,15 +2,17 @@ from passlib.context import CryptContext
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
-from datetime import datetime, timedelta
+from datetime import timedelta, datetime
 from schemas.token import TokenData
 import jwt, smtplib, asyncio, random
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import update
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import datetime as dt
 
-from config.database import get_db
+from config.database import get_db, AsyncSessionLocal
 from model import Student, Book, Issue
 
 
@@ -68,18 +70,18 @@ def get_current_user(token : str = Depends(oauth2_scheme)):
     return verify_access_token(token, credentials_exception)
     
 
-async def get_due_students():
-    async for db in get_db():
-        today = datetime.date.today()
+async def get_due_students(db: AsyncSession = Depends(get_db)):
+        today = dt.date.today()
         due_date = today + timedelta(days=2)
         
-        query = (select(Student.email, Student.firstName, Book.title, Issue.due_date)
+        query = (select(Student.email, Student.firstName, Book.title, Issue.due_date, Issue.id)
                 .join(Issue, Student.studentId == Issue.student_id)
                 .join(Book, Issue.book_id == Book.isbn)
-                .where(Issue.due_date == due_date))
+                .where(Issue.due_date == due_date, Issue.reminder_sent == False))
         
         result = await db.execute(query)
         return result.all()
+    
 
 async def send_email(recipient, student_name, book_title, due_date):
     message = MIMEMultipart()
@@ -90,12 +92,18 @@ async def send_email(recipient, student_name, book_title, due_date):
     body = f"Hello {student_name},\n\nThis is a reminder that you have to return the book '{book_title}' by {due_date}. If you have already returned the book, please ignore this message.\n\nThank you."
     message.attach(MIMEText(body, 'plain'))
     
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.starttls()
-        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
-        server.sendmail(EMAIL_SENDER, recipient, message.as_string())
-        server.quit()
-        
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_SENDER, recipient, message.as_string())
+            server.quit()
+        print(f"✅ Reminder sent to {student_name} ({recipient}) for book '{book_title}' due on {due_date}")
+        return True  # Email sent successfully
+    except Exception as e:
+        print(f"❌ Failed to send email to {recipient}: {e}")
+        return False  # Email sending failed
+
 
 async def send_otp(recipient: str, student_name: str) -> int:
     message = MIMEMultipart()
@@ -121,11 +129,18 @@ async def send_otp(recipient: str, student_name: str) -> int:
 
         
 async def check_and_send_reminders():
-    students = await get_due_students()
-    for email, firstName, title, due_date in students:
-        await send_email(email, firstName, title, due_date)
-        print(f"✅ Reminder sent to {firstName} ({email}) for book '{title}' due on {due_date}")
-        await asyncio.sleep(1)
+    async with AsyncSessionLocal() as db:
+        students = await get_due_students(db)
+        
+        for email, firstName, title, due_date, issue_id in students:
+            email_sent = await send_email(email, firstName, title, due_date)
+            if email_sent:
+                stmt = update(Issue).where(Issue.id == issue_id).values(reminder_sent=True)
+                await db.execute(stmt)
+                await db.commit()
+            
+            await asyncio.sleep(1)
+    
 
     
     

@@ -77,21 +77,10 @@ class Issue(Base):
     return_date = Column(Date, nullable=True, default=None)  
     status = Column(Enum(IssueStatus), nullable=False, default=IssueStatus.ISSUED)
     renewal_count = Column(Integer, nullable=False, default=0)
+    reminder_sent = Column(Boolean, default=False)
     
-    MAX_RENEWALS = 3  
-
     book = relationship("Book", back_populates="issues")
     student = relationship("Student", back_populates="issues")
     librarian = relationship("User", back_populates="issues")
 
-    def renew(self, session, extension_days=30):
-        """Renews the book issue by extending the due date."""
-        if self.renewal_count < self.MAX_RENEWALS:
-            self.due_date = self.due_date + timedelta(days=extension_days)  
-            self.renewal_count += 1
-            self.status = IssueStatus.RENEWED
-            session.add(self) 
-            session.commit()
-            return True
-        return False
 
