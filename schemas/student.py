@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
-
-class baseStudent(BaseModel):
+       
+class createStudent(BaseModel):
     firstName : str
     lastName : str
     email : EmailStr
@@ -11,10 +11,8 @@ class baseStudent(BaseModel):
     
     model_config = {"from_attributes": True}
     
-    
-class createStudent(baseStudent):
-    pass
-    
+class baseStudent(createStudent):
+    issue_status : bool
     
 class updateStudent(BaseModel):
     firstName : str

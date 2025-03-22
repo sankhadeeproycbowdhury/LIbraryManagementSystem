@@ -83,6 +83,19 @@ async def get_due_students(db: AsyncSession = Depends(get_db)):
         return result.all()
     
 
+async def get_revokable_students(db: AsyncSession = Depends(get_db)):
+        today = dt.date.today()
+        
+        query = (select(Student.id)
+                .join(Issue, Student.studentId == Issue.student_id)
+                .where(Issue.due_date < today, Issue.status == "Issued")
+                .group_by(Student.id)
+                .having(func.count(Issue.id) >= 3))
+        
+        result = await db.execute(query)
+        return result.all()
+    
+
 async def send_email(recipient, student_name, book_title, due_date):
     message = MIMEMultipart()
     message['From'] = EMAIL_SENDER
@@ -138,7 +151,17 @@ async def check_and_send_reminders():
                 stmt = update(Issue).where(Issue.id == issue_id).values(reminder_sent=True)
                 await db.execute(stmt)
                 await db.commit()
+                await asyncio.sleep(1)
             
+            
+async def check_and_set_flag():
+    async with AsyncSessionLocal() as db:
+        students = await get_revokable_students(db)
+        
+        for student_id in students:
+            revoke = update(Student).where(Student.id == student_id).values(issue_status=False)
+            await db.execute(revoke)
+            await db.commit()
             await asyncio.sleep(1)
     
 

@@ -30,6 +30,7 @@ class Student(Base):
     phone = Column(String(255), nullable=False)
     department = Column(String(255), nullable=False)
     batch = Column(Integer, nullable=False)
+    issue_status = Column(Boolean, default=True)
 
     issues = relationship("Issue", back_populates="student") 
 
