@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from config.database import check_db_connection, create_tables, engine
-from controller import userController, authController, studentController, bookController, bookIssueController
+from controller import userController, authController, studentController, bookController, bookIssueController, adminController
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from utils import check_and_send_reminders, check_and_set_flag
 import model
@@ -30,6 +30,7 @@ app.include_router(authController.router)
 app.include_router(studentController.router)
 app.include_router(bookController.router)
 app.include_router(bookIssueController.router)
+app.include_router(adminController.router)
 
 
 @app.get("/")
