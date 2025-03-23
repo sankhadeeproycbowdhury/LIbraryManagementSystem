@@ -57,7 +57,13 @@ async def create_issue(issue : bookIssue.createBookIssue, db: AsyncSession = Dep
     issued_books_count = count_result.scalar()    
     if issued_books_count >= 10:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student has already issued 10 books")
-
+    
+    check_status_query = select(model.Student.issue_status).where(model.Student.studentId == issue.student_id)
+    result = await db.execute(check_status_query)
+    status = result.scalar()
+    
+    if status is False:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student has been blocked from issuing books")
     
     new_issue = model.Issue(
         book_id=issue.book_id,
@@ -96,9 +102,17 @@ async def update_issue(id : int, issue : bookIssue.updateBookIssue, db: AsyncSes
         book = await get_book_byISBN(issue_exists.book_id, db, client)
         await update_book(issue_exists.book_id, updateBook(edition=book.edition, publication=book.publication, quantity=book.quantity,
         price=book.price, rack_no=book.rack_no, available=book.available + 1), db, client)
+        
     elif issue.status == "Renewed":
         if int(issue_exists.renewal_count) == 3:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="MAX_RENEWAL count achived")
+        
+        check_status_query = select(model.Student.issue_status).where(model.Student.studentId == issue.student_id)
+        result = await db.execute(check_status_query)
+        status = result.scalar()
+        if status is False:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student has been blocked from renewing books")
+        
         update_values["renewal_count"] = issue_exists.renewal_count + 1 
         update_values["due_date"] = issue_exists.due_date + timedelta(days=30) 
 

@@ -88,7 +88,7 @@ async def get_revokable_students(db: AsyncSession = Depends(get_db)):
         
         query = (select(Student.id)
                 .join(Issue, Student.studentId == Issue.student_id)
-                .where(Issue.due_date < today, Issue.status == "Issued")
+                .where(Issue.due_date < today, Issue.status != "Returned")
                 .group_by(Student.id)
                 .having(func.count(Issue.id) >= 3))
         
