@@ -3,10 +3,26 @@ from config.database import check_db_connection, create_tables, engine
 from controller import userController, authController, studentController, bookController, bookIssueController, adminController
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from utils import check_and_send_reminders, check_and_set_flag
+from fastapi.middleware.cors import CORSMiddleware
 import model
 
-
 app = FastAPI()
+
+# Allowed Origins
+origins = [
+    "http://localhost:3000",  # If frontend is running on React or Vue
+    "http://127.0.0.1:3000",
+    "https://yourfrontenddomain.com"  # Add your production frontend domain
+]
+
+# Enable CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Allowed frontend origins
+    allow_credentials=True,  # Allow sending cookies
+    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 
 scheduler = AsyncIOScheduler()
 
