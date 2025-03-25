@@ -166,20 +166,45 @@ async def get_daily_book_issues(db: AsyncSession = Depends(get_db), client : int
     
 
 
-@router.get("/activeStudents", response_model=List[student.baseStudent])
+@router.get("/activeStudents")
 async def get_active_students(db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
     if(client.role == False):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized access")
     
-    query = (select(model.Student)
-             .join(model.Issue, model.Student.studentId == model.Issue.student_id)
-             .where(model.Issue.status != "Returned")
-             .distinct())
-    
-    
+    query = (select(
+            model.Student.firstName, 
+            model.Student.studentId, 
+            model.Student.department, 
+            model.Student.batch, 
+            func.count(model.Issue.book_id).label("books_issued"), 
+            model.Student.issue_status)
+        .join(model.Issue, model.Student.studentId == model.Issue.student_id)
+        .group_by(
+            model.Student.studentId, 
+            model.Student.firstName, 
+            model.Student.department, 
+            model.Student.batch, 
+            model.Student.issue_status)
+        .order_by(func.count(model.Issue.book_id).desc()) 
+    )
+
     result = await db.execute(query)
-    students = result.scalars().all()
-    return students
+    students = result.all()  
+
+    students_list = [
+        {
+            "name": row[0],
+            "rollNo": row[1],
+            "department": row[2],
+            "batch": row[3],
+            "books_issued": row[4], 
+            "issue_status": row[5]  
+        }
+        for row in students
+    ]
+    
+    return students_list
+
 
 
 @router.put("/unrevokedStudent/{rollNo}", status_code=status.HTTP_202_ACCEPTED, response_model=student.baseStudent)
