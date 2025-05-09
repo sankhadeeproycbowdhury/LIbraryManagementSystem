@@ -14,8 +14,8 @@ Follow the steps below to set up and run the system locally:
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/sidsingh04/LIbraryManagementSystem
-   cd your-repo
+   git clone https://github.com/sidsingh04/LibraryManagementSystem
+   cd LibraryManagementSystem
 
 2. **Virtual Environment(Windows)**
    ```bash
@@ -38,5 +38,5 @@ Follow the steps below to set up and run the system locally:
 
 4. **Start the Backend API Server**
     ```bash
-    cd BackEnd
+    cd ../BackEnd
     uvicorn main:app --reload
