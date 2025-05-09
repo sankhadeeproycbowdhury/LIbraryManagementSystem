@@ -25,19 +25,18 @@ async def get_issues(db: AsyncSession = Depends(get_db), client : int = Depends(
     return issues
 
 
-@router.get("/search", response_model= List[bookIssue.baseBookIssue])
-async def get_issues(issue : bookIssue.createBookIssue, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
+@router.get("/search")
+async def get_issues(student_id: str, book_id: str, db: AsyncSession = Depends(get_db), client: int = Depends(get_current_user)):
     query = select(model.Issue).where(
-        model.Issue.student_id == issue.student_id,
-        model.Issue.book_id == issue.book_id
+        model.Issue.student_id == student_id,
+        model.Issue.book_id == book_id
     )
     result = await db.execute(query)
-    issues = result.scalars().all()
-    return issues
+    return result.scalars().all()
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_issue(issue : bookIssue.createBookIssue, db: AsyncSession = Depends(get_db), client : dict = Depends(get_current_user)):
+async def create_issue(issue: bookIssue.createBookIssue, db: AsyncSession = Depends(get_db), client: dict = Depends(get_current_user)):
     query = select(model.Issue).where(
         model.Issue.book_id == issue.book_id,
         model.Issue.student_id == issue.student_id,
@@ -47,41 +46,47 @@ async def create_issue(issue : bookIssue.createBookIssue, db: AsyncSession = Dep
     issue_exists = result.scalars().first()
     if issue_exists:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Book already issued to the student")
-    
-    
+
     count_query = select(func.count()).where(
         model.Issue.student_id == issue.student_id,
         or_(model.Issue.status == "Issued", model.Issue.status == "Renewed")
     )
     count_result = await db.execute(count_query)
-    issued_books_count = count_result.scalar()    
+    issued_books_count = count_result.scalar()
     if issued_books_count >= 10:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student has already issued 10 books")
-    
+
     check_status_query = select(model.Student.issue_status).where(model.Student.studentId == issue.student_id)
     result = await db.execute(check_status_query)
-    status = result.scalar()
-    
-    if status is False:
+    issue_status = result.scalar()
+
+    if issue_status is False:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student has been blocked")
-    
+
     new_issue = model.Issue(
         book_id=issue.book_id,
         student_id=issue.student_id,
         user_id=client.jobId
     )
-    
+
     db.add(new_issue)
     await db.commit()
     await db.refresh(new_issue)
-    
+
     book = await get_book_byISBN(issue.book_id, db, client)
     print(book)
-    res = await update_book(issue.book_id, updateBook(edition=book.edition, publication=book.publication, quantity=book.quantity,
-    price=book.price, rack_no=book.rack_no, available=book.available - 1), db, client)
+    res = await update_book(issue.book_id, updateBook(
+        edition=book.edition,
+        publication=book.publication,
+        quantity=book.quantity,
+        price=book.price,
+        rack_no=book.rack_no,
+        available=book.available - 1
+    ), db, client)
     print(res)
-    
+
     return {"message": "Book Issued Successfully"}
+
 
 
 @router.put("/{id}", status_code=status.HTTP_202_ACCEPTED)

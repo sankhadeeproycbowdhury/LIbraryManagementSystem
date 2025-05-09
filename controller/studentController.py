@@ -22,13 +22,13 @@ async def get_students(db: AsyncSession = Depends(get_db), client : int = Depend
     return students
 
 
-@router.get("/{name}", response_model=student.baseStudent)
-async def get_student(name : str, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
-    result = await db.execute(select(model.Student).where(model.Student.firstName == name))
-    student = result.scalar_one_or_none()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    return student
+# @router.get("/{name}", response_model=student.baseStudent)
+# async def get_student(name : str, db: AsyncSession = Depends(get_db), client : int = Depends(get_current_user)):
+#     result = await db.execute(select(model.Student).where(model.Student.firstName == name))
+#     student = result.scalar_one_or_none()
+#     if not student:
+#         raise HTTPException(status_code=404, detail="Student not found")
+#     return student
 
 
 

@@ -24,6 +24,7 @@ class baseBookIssue(createBookIssue):
     reminder_sent : bool
 
 class updateBookIssue(BaseModel):
+    student_id : str
     status : IssueStatus
     renewal_count: int = 0
     

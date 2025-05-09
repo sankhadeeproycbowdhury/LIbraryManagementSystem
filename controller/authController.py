@@ -23,11 +23,11 @@ async def login(userCredentials : OAuth2PasswordRequestForm = Depends(), db: Asy
     return {"token_type" : "bearer", "token" : token}
 
 
-@router.get('/otp')
+@router.post('/otp')
 async def get_otp(auth : auth.userOTP, client : int = Depends(get_current_user)):
     otp = await send_otp(auth.email, auth.name)
     if otp is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="OTP not sent")
-    return {"message": f"Your OTP is {otp}"}
+    return {"OTP" : otp}
 
 
