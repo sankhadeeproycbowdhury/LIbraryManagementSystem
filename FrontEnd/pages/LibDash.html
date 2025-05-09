@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Report</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .report-btn {
+            width: 20%; margin: 10px; padding: 20px;
+            border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+            background: linear-gradient(145deg, #4a90e2, #ffffff); border: none;
+            color: #2c3e50;
+        }
+        .report-btn:hover {
+            transform: translateY(-5px); box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+            background: linear-gradient(145deg, #357abd, #ffffff); color: #1a252f;
+        }
+        .container { margin-top: 50px; }
+        .readonly-box { background: #f8f9fa; padding: 15px; border-radius: 10px; }
+        .active-btn {
+            border: 2px solid black !important;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+</head>
+<body>
+<div class="container">
+    <h1 class="text-center mb-4">Librarian Report</h1>
+    <div class="row justify-content-center">
+        <div class="col-12 d-flex justify-content-center flex-wrap">
+            <button id="studentReportBtn" class="report-btn">Student Report</button>
+            <button id="bookIssueReportBtn" class="report-btn">Book-Issue Report</button>
+            <button id="bookReportBtn" class="report-btn">Books Report</button>
+        </div>
+    </div>
+
+    <div id="studentReportSection" class="mt-5" style="display: none;">
+        <h3>Student Report</h3>
+        <div class="mt-4">
+            <h5>Active Students (<span id="activeCount">0</span>)</h5>
+            <input type="text" id="activeSearch" class="form-control mb-2" placeholder="Search by Roll Number">
+            <ul id="activeStudentList" class="list-group"></ul>
+        </div>
+        <div class="mt-4">
+            <h5>Revoked Students (<span id="revokedCount">0</span>)</h5>
+            <input type="text" id="revokedSearch" class="form-control mb-2" placeholder="Search by Roll Number">
+            <ul id="revokedStudentList" class="list-group"></ul>
+        </div>
+    </div>
+
+    <div id="bookIssueSection" class="mt-5" style="display: none;">
+        <h3>Book-Issue Report</h3>
+        <input type="text" id="issueSearch" class="form-control mb-3" placeholder="Enter Roll No to Search Issued Books">
+        <div id="reportContainer" class="row gx-5 mb-4"></div>
+
+        <div id="todayIssuedSection" class="mt-4">
+            <h5>Books Issued Today (<span id="todayIssuedCount">0</span>)</h5>
+            <ul id="todayIssuedList" class="list-group"></ul>
+        </div>
+        <div style="width: 90%; height: 400px; margin: auto;">
+            <canvas id="deptIssuedChart"></canvas>
+        </div> 
+        <div style="width: 90%; height: 400px; margin: auto;">
+            <canvas id="dailyIssueChart"></canvas>
+        </div>                 
+    </div>
+    <div id="bookReportSection" class="mt-5" style="display: none;">
+        <h3>Book Report</h3>
+        <ul class="list-group">
+            <li class="list-group-item">Total Books: <span id="totalBooks">0</span></li>
+            <li class="list-group-item">Available Books: <span id="availableBooks">0</span></li>
+        </ul>
+        <h5 class="mt-4">Books by Category</h5>
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <ul id="categoryList" class="list-group"></ul>
+            </div>
+            <div class="col-md-6 d-flex align-items-center">
+                <canvas id="categoryPieChart" style="height: 300px; width: 100%;"></canvas>
+            </div>
+        </div>
+        
+            
+        </div>
+        
+    </div>    
+    
+</div>
+
+<script>
+    const token = localStorage.getItem("token");
+
+    document.getElementById('studentReportBtn').addEventListener('click', () => {
+        document.getElementById('studentReportSection').style.display = 'block';
+        document.getElementById('bookReportSection').style.display='none';
+        document.getElementById('bookIssueSection').style.display = 'none';
+
+        document.getElementById('studentReportBtn').classList.add('active-btn');
+        document.getElementById('bookIssueReportBtn').classList.remove('active-btn');
+        document.getElementById('bookReportBtn').classList.remove('active-btn');
+
+        fetch('http://localhost:8000/admin/activeStudents', { headers: { "Authorization": `Bearer ${token}` }})
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('activeCount').textContent = data.length;
+            const list = document.getElementById('activeStudentList');
+            list.innerHTML = '';
+            data.forEach(s => list.innerHTML += `<li class='list-group-item'>${s.name} - ${s.rollNo}</li>`);
+            document.getElementById('activeSearch').oninput = e => {
+                const term = e.target.value.toLowerCase();
+                [...list.children].forEach(item => item.style.display = item.textContent.toLowerCase().includes(term) ? '' : 'none');
+            };
+        });
+
+        fetch('http://localhost:8000/admin/revokedStudents', { headers: { "Authorization": `Bearer ${token}` }})
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('revokedCount').textContent = data.length;
+            const list = document.getElementById('revokedStudentList');
+            list.innerHTML = '';
+            data.forEach(s => list.innerHTML += `<li class='list-group-item'>${s.name} - ${s.rollNo}</li>`);
+            document.getElementById('revokedSearch').oninput = e => {
+                const term = e.target.value.toLowerCase();
+                [...list.children].forEach(item => item.style.display = item.textContent.toLowerCase().includes(term) ? '' : 'none');
+            };
+        });
+    });
+
+    document.getElementById('bookIssueReportBtn').addEventListener('click', () => {
+        document.getElementById('studentReportSection').style.display = 'none';
+        document.getElementById('bookReportSection').style.display='none';
+        document.getElementById('bookIssueSection').style.display = 'block';
+
+        document.getElementById('bookIssueReportBtn').classList.add('active-btn');
+        document.getElementById('studentReportBtn').classList.remove('active-btn');
+        document.getElementById('bookReportBtn').classList.remove('active-btn');
+
+        fetch('http://localhost:8000/admin/issuedToday', {
+            headers: { "Authorization": `Bearer ${token}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('todayIssuedCount').textContent = data.length;
+            const list = document.getElementById('todayIssuedList');
+            list.innerHTML = '';
+            data.forEach(book => {
+                list.innerHTML += `<li class='list-group-item'>${book.title} - ${book.author} - ${book.department}</li>`;
+            });
+        });
+
+        fetch('http://localhost:8000/admin/issuedBooks/departmentWise', {
+    headers: { "Authorization": `Bearer ${token}` }
+})
+.then(res => res.json())
+.then(data => {
+    const labels = data.map(item => item.department?.trim() || "Unknown");
+    const counts = data.map(item => item.issued_count);
+
+    const bluishTones = [
+        'rgba(30, 144, 255, 0.8)',   // Dodger Blue
+        'rgba(100, 149, 237, 0.8)', // Cornflower Blue
+        'rgba(70, 130, 180, 0.8)',  // Steel Blue
+        'rgba(135, 206, 250, 0.8)', // Light Sky Blue
+        'rgba(0, 191, 255, 0.8)'    // Deep Sky Blue
+    ];
+
+    const bgColors = labels.map((_, idx) => bluishTones[idx % bluishTones.length]);
+
+    if (window.deptChartInstance) window.deptChartInstance.destroy();
+
+    const ctx = document.getElementById('deptIssuedChart').getContext('2d');
+    window.deptChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Issued Books',
+                data: counts,
+                backgroundColor: bgColors,
+                borderRadius: 6,
+                barThickness: 25
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: context => `Issued: ${context.raw}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Issued Count'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Department'
+                    }
+                }
+            }
+        }
+    });
+});
+
+fetch('http://localhost:8000/admin/dailyBookIssues', {
+    headers: { "Authorization": `Bearer ${token}` }
+})
+.then(res => res.json())
+.then(data => {
+    // Sort by date and pick the 5 most recent
+    const recentData = data
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 5)
+        .reverse(); // reverse to keep chronological order
+
+    const labels = recentData.map(item => new Date(item.date).toLocaleDateString());
+    const counts = recentData.map(item => item.count);
+
+    if (window.dailyLineChart) window.dailyLineChart.destroy();
+
+    const ctx = document.getElementById('dailyIssueChart').getContext('2d');
+    window.dailyLineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Books Issued',
+                data: counts,
+                borderColor: 'rgba(255, 165, 0, 1)',
+                backgroundColor: 'rgba(255, 165, 0, 0.2)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: 'rgba(255, 140, 0, 1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: context => `Issued: ${context.raw}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Issue Count'
+                    }
+                }
+            }
+        }
+    });
+});
+
+    });
+
+    document.getElementById('issueSearch').addEventListener('change', async (e) => {
+        const rollNo = e.target.value.trim();
+        if (!rollNo) return;
+
+        const studentRes = await fetch(`http://localhost:8000/students/${rollNo}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const student = await studentRes.json();
+
+        const issueRes = await fetch(`http://localhost:8000/admin/overdueIssues/${rollNo}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const issues = await issueRes.json();
+
+        const studentInfo = `
+            <div class="col-md-6 readonly-box">
+                <h5>Student Info</h5>
+                <p><strong>Name:</strong> ${student.firstName}</p>
+                <p><strong>Roll No:</strong> ${student.studentId}</p>
+                <p><strong>Batch:</strong> ${student.batch}</p>
+                <p><strong>Department:</strong> ${student.department}</p>
+            </div>`;
+
+        const booksInfo = `
+            <div class="col-md-6 readonly-box">
+                <h5>Book Info</h5>
+                ${issues.map(book => `
+                    <div class="mb-2">
+                        <p><strong>ISBN:</strong> ${book.book_id}</p>
+                        <p><strong>Title:</strong> ${book.title || 'N/A'}</p>
+                        <p><strong>Issue Date:</strong> ${book.issue_date}</p>
+                        <p><strong>Category:</strong> ${book.category || 'N/A'}</p>
+                        <hr>
+                    </div>`).join('')}
+            </div>`;
+
+        document.getElementById('reportContainer').innerHTML = studentInfo + booksInfo;
+    });
+
+
+    document.getElementById('bookReportBtn').addEventListener('click', async () => {
+    document.getElementById('studentReportSection').style.display = 'none';
+    document.getElementById('bookIssueSection').style.display = 'none';
+    document.getElementById('bookReportSection').style.display = 'block';
+
+    document.getElementById('studentReportBtn').classList.remove('active-btn');
+    document.getElementById('bookIssueReportBtn').classList.remove('active-btn');
+    document.getElementById('bookReportBtn').classList.add('active-btn');
+
+    const token = localStorage.getItem("token");
+
+    const total = await fetch("http://localhost:8000/books/", {
+        headers: { "Authorization": `Bearer ${token}` }
+    }).then(res => res.json());
+
+    const available = await fetch("http://localhost:8000/books/available", {
+        headers: { "Authorization": `Bearer ${token}` }
+    }).then(res => res.json());
+
+    const byCategory = await fetch("http://localhost:8000/admin/booksByCategory", {
+        headers: { "Authorization": `Bearer ${token}` }
+    }).then(res => res.json());
+
+    document.getElementById("totalBooks").textContent = total.length;
+    document.getElementById("availableBooks").textContent = available.length;
+
+    const catList = document.getElementById("categoryList");
+    catList.innerHTML = '';
+    byCategory.forEach(entry => {
+        catList.innerHTML += `<li class='list-group-item'>${entry.category} - ${entry.count}</li>`;
+    });
+
+    const ctx = document.getElementById('categoryPieChart').getContext('2d');
+    if (window.categoryChart) {
+        window.categoryChart.destroy();
+    }
+    window.categoryChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: byCategory.map(c => c.category),
+            datasets: [{
+                label: 'Books per Category',
+                data: byCategory.map(c => c.count),
+                backgroundColor: [
+                    '#4dc9f6', '#f67019', '#f53794', '#537bc4',
+                    '#acc236', '#166a8f', '#00a950', '#58595b', '#8549ba'
+                ],
+                borderColor: '#fff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        boxWidth: 20,
+                        padding: 15
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.label}: ${context.parsed}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+});
+
+
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

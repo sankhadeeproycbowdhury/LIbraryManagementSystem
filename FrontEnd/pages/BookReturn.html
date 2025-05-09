@@ -1,0 +1,141 @@
+<!-- Final Testing Remains-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Return Book</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <h2 class="mb-4">Return Book</h2>
+        <div class="card p-4 shadow-sm">
+            <div class="mb-3">
+                <label for="studentId" class="form-label">Student ID</label>
+                <input type="text" class="form-control" id="studentId" required>
+            </div>
+            <div class="mb-3">
+                <label for="isbn" class="form-label">ISBN Number</label>
+                <input type="text" class="form-control" id="isbn" required>
+            </div>
+            <button class="btn btn-primary" onclick="fetchIssueDetails()">Submit</button>
+        </div>
+
+        <div id="details" class="card mt-5 p-4 shadow-sm" style="display:none;">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Student Details</h5>
+                    <div class="mb-2">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" id="studentName" readonly>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Email</label>
+                        <input type="text" class="form-control" id="studentEmail" readonly>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h5>Book Details</h5>
+                    <div class="mb-2">
+                        <label class="form-label">Title</label>
+                        <input type="text" class="form-control" id="bookTitle" readonly>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Author</label>
+                        <input type="text" class="form-control" id="bookAuthor" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <label class="form-label">Issue Date</label>
+                <input type="text" class="form-control" id="issueDate" readonly>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button class="btn btn-success" onclick="returnBook()">Accept</button>
+                <button class="btn btn-danger" onclick="rejectReturn()">Reject</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchIssueDetails() {
+            const studentId = document.getElementById("studentId").value;
+            const isbn = document.getElementById("isbn").value;
+            const token = localStorage.getItem("token");
+            localStorage.setItem("studentId", studentId);
+
+            try {
+                const response = await fetch(`http://localhost:8000/issues/search?student_id=${encodeURIComponent(studentId)}&book_id=${encodeURIComponent(isbn)}`, {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    alert("No issued book found or invalid request.");
+                    return;
+                }
+
+                const data = await response.json();
+                if (!Array.isArray(data) || data.length === 0) {
+                    alert("No issued book found for this student and ISBN.");
+                    return;
+                }
+
+                const issue = data[0];
+
+                const studentRes = await fetch(`http://localhost:8000/students/${studentId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const student = await studentRes.json();
+
+                const bookRes = await fetch(`http://localhost:8000/books/byISBN/${isbn}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const book = await bookRes.json();
+
+                document.getElementById("studentName").value = student.firstName + ' ' + student.lastName;
+                document.getElementById("studentEmail").value = student.email;
+                document.getElementById("bookTitle").value = book.title;
+                document.getElementById("bookAuthor").value = book.author;
+                document.getElementById("issueDate").value = issue.issue_date;
+
+                document.getElementById("details").style.display = "block";
+                window.issueId = issue.id;
+            } catch (error) {
+                console.error(error);
+                alert("A problem occurred while fetching data.");
+            }
+        }
+
+        async function returnBook() {
+            const token = localStorage.getItem("token");
+            const studentId = localStorage.getItem("studentId");
+
+            const response = await fetch(`http://localhost:8000/issues/${window.issueId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ status: "Returned", student_id : studentId })
+            });
+
+            if (response.ok) {
+                alert("Book returned successfully.");
+                window.location.href = "libLand.html";
+            } else {
+                alert("Failed to return the book.");
+            }
+        }
+
+        function rejectReturn() {
+            alert("Return process canceled.");
+            document.getElementById("details").style.display = "none";
+        }
+    </script>
+</body>
+</html>

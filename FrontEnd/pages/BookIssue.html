@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Issue Book</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #otpInput {
+            min-height: 50px;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container py-5" id="formPage">
+    <div class="card shadow">
+        <div class="card-body">
+            <h3 class="card-title mb-4">Issue a Book</h3>
+            <form id="issueForm">
+                <div class="mb-3">
+                    <label for="studentId" class="form-label">Student ID</label>
+                    <input type="text" class="form-control" id="studentId" required>
+                </div>
+                <div class="mb-3">
+                    <label for="bookId" class="form-label">Book ID (ISBN)</label>
+                    <input type="text" class="form-control" id="bookId" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5 d-none" id="detailsPage">
+    <div class="card shadow">
+        <div class="card-body">
+            <h3 class="card-title mb-4">Confirm Issue</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Student Details</h5>
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">Student ID</label>
+                            <input type="text" id="displayStudentId" class="form-control" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Student Name</label>
+                            <input type="text" id="displayStudentName" class="form-control" readonly>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <h5>Book Details</h5>
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">Book ID (ISBN)</label>
+                            <input type="text" id="displayBookId" class="form-control" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Book Title</label>
+                            <input type="text" id="displayBookTitle" class="form-control" readonly>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="text-center mt-4">
+                <label for="otpInput" class="form-label">Enter OTP</label>
+                <div class="d-flex justify-content-center mb-3">
+                    <input type="text" id="otpInput" class="form-control form-control-lg w-50 border border-primary" placeholder="Enter OTP here">
+                </div>
+                <div class="text-center">
+                    <button id="rejectBtn" class="btn btn-danger me-2">Reject</button>
+                    <button id="approveBtn" class="btn btn-success">Approve</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const issueForm = document.getElementById('issueForm');
+const detailsPage = document.getElementById('detailsPage');
+const formPage = document.getElementById('formPage');
+const displayStudentId = document.getElementById('displayStudentId');
+const displayStudentName = document.getElementById('displayStudentName');
+const displayBookId = document.getElementById('displayBookId');
+const displayBookTitle = document.getElementById('displayBookTitle');
+const otpInput = document.getElementById('otpInput');
+
+let studentId = "";
+let bookId = "";
+let otpAttempts = 0;
+let studentEmail = "";
+let studentName = "";
+const token = localStorage.getItem('token');
+
+issueForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    studentId = document.getElementById('studentId').value.trim();
+    bookId = document.getElementById('bookId').value.trim();
+
+    try {
+        const [studentRes, bookRes] = await Promise.all([
+            fetch(`http://localhost:8000/students/${studentId}`, {
+                headers: { 'Authorization': `bearer ${token}` }
+            }),
+            fetch(`http://localhost:8000/books/byISBN/${bookId}`, {
+                headers: { 'Authorization': `bearer ${token}` }
+            })
+        ]);
+
+        if (!studentRes.ok) {
+            alert('Invalid Student ID. Please try again.');
+            return;
+        }
+        if (!bookRes.ok) {
+            alert('Invalid Book ID (ISBN). Please try again.');
+            return;
+        }
+
+        const studentData = await studentRes.json();
+        const bookData = await bookRes.json();
+
+        studentEmail = studentData.email;
+        studentName = studentData.firstName + ' ' + studentData.lastName;
+
+        const otpResponse = await fetch(`http://localhost:8000/otp`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `bearer ${token}`
+            },
+            body: JSON.stringify({ email: studentEmail, name: studentName })
+        });
+
+        if (!otpResponse.ok) {
+            alert('Failed to send OTP. Try again later.');
+            return;
+        }
+
+        const data = await otpResponse.json();
+        localStorage.setItem("otp",data.OTP);
+        console.log(data.OTP);
+
+        displayStudentId.value = studentId;
+        displayStudentName.value = studentName;
+        displayBookId.value = bookId;
+        displayBookTitle.value = bookData.title;
+
+        formPage.classList.add('d-none');
+        detailsPage.classList.remove('d-none');
+
+    } catch (error) {
+        alert('Network Error: ' + error);
+    }
+});
+
+document.getElementById('rejectBtn').addEventListener('click', function() {
+    window.location.href = "libLand.html";
+});
+
+document.getElementById('approveBtn').addEventListener('click', async function() {
+    const userOtp = otpInput.value.trim();
+    otpAttempts++;
+    
+    try {
+        if(localStorage.getItem("otp") !== String(userOtp)) {
+            if (otpAttempts >= 3) {
+                alert("Maximum OTP attempts exceeded. Redirecting to home.");
+                window.location.href = "libLand.html";
+            } else {
+                alert("Incorrect OTP. Attempts remaining: " + (3 - otpAttempts));
+            }
+            return;
+        }
+
+        const response = await fetch('http://localhost:8000/issues/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `bearer ${token}`
+            },
+            body: JSON.stringify({
+                student_id: studentId,
+                book_id: bookId
+            })
+        });
+
+        if (response.ok) {
+            alert(`Book ${bookId} issued to student ${studentId}!`);
+            window.location.href = "libLand.html";
+        } else {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const errorData = await response.json();
+                alert('Error: ' + (errorData.detail || 'Something went wrong.'));
+            } else {
+                const text = await response.text();
+                console.error('Non-JSON error:', text);
+                alert('Unexpected server response. Check console.');
+            }
+        }
+    } catch (error) {
+        alert('Network Error: ' + error);
+    }
+});
+</script>
+
+</body>
+</html>

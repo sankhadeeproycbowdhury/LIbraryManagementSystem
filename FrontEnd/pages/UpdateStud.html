@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Update Student</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.4/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h1 class="text-center mb-4">Update student details</h1>
+      <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+          <div id="alertBox"></div>
+          <form id="addStudentForm">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="firstname" class="form-label">First Name</label>
+                <input type="text" class="form-control" id="firstname" name="firstName" required>
+              </div>
+              <div class="col-md-6">
+                <label for="lastname" class="form-label">Last Name</label>
+                <input type="text" class="form-control" id="lastname" name="lastName" required>
+              </div>
+            </div>
+
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="rollno" name="studentId" placeholder="e.g., 2023/CS/001" readonly>
+              <label for="rollno">Roll Number</label>
+            </div>
+
+            <div class="form-floating mb-3">
+              <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" required>
+              <label for="email">Email address</label>
+            </div>
+
+            <div class="form-floating mb-3">
+              <input type="tel" class="form-control" id="phone" name="phone" placeholder="Phone Number" pattern="[0-9]{10}" required>
+              <label for="phone">Phone Number</label>
+            </div>
+
+            <div class="form-floating mb-3">
+              <input type="number" class="form-control" id="batch" name="batch" placeholder="e.g., 2023" readonly>
+              <label for="batch">Batch</label>
+            </div>
+
+            <div class="mb-3">
+              <label for="department" class="form-label">Department</label>
+              <select class="form-select" id="department" name="department" required>
+                <option value="" selected disabled>Select Department</option>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Information Technology">Information Technology</option>
+                <option value="Data Science">Data Science</option>
+              </select>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-success">Update Student Details</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+    const studentData = JSON.parse(localStorage.getItem("studentToUpdate"));
+    
+
+    if (!studentData) {
+        alert("No student data found!");
+        window.location.href = "Students.html";
+        return;
+    }
+
+    // Pre-fill form
+    document.getElementById("firstname").value = studentData.firstName;
+    document.getElementById("lastname").value = studentData.lastName;
+    document.getElementById("rollno").value = studentData.studentId;
+    document.getElementById("email").value = studentData.email;
+    document.getElementById("phone").value = studentData.phone;
+    document.getElementById("batch").value = studentData.batch;
+    document.getElementById("department").value = studentData.department;
+
+    // Handle form submission
+    document.getElementById("addStudentForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("You are not logged in.");
+            return;
+        }
+
+        const updatedStudent = {
+            firstName: document.getElementById("firstname").value,
+            lastName: document.getElementById("lastname").value,
+            email: document.getElementById("email").value,
+            phone: document.getElementById("phone").value,
+            department: document.getElementById("department").value,
+        };
+
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/students/${studentData.studentId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `bearer ${token}`
+                },
+                body: JSON.stringify(updatedStudent)
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to update student");
+            }
+
+            alert(`Student with Roll No ${studentData.studentId} updated successfully.`);
+            localStorage.removeItem("studentToUpdate");   
+            localStorage.removeItem("updateOrigin");
+            window.location.href = "LibLand.html";
+        
+
+        } catch (err) {
+            console.error(err);
+            alert("Failed to update student. Please try again.");
+        }
+    });
+});
+
+    </script>
+    
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.4/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

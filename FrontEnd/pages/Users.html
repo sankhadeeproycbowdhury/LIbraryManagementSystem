@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Librarian List</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.4/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-DQvkBjpPgn7RC31MCQoOeC9TI2kdqa4+BSgNMNj8v77fdC77Kj5zpWFTJaaAoMbC" crossorigin="anonymous">
+  </head>
+  <body>
+    <div class="container position-relative min-vh-100 d-flex flex-column justify-content-center align-items-center">
+      <!-- Right-aligned Search Box -->
+      <div class="position-absolute top-0 end-0 mt-3 me-3">
+        <div class="input-group">
+          <input type="text" class="form-control" id="searchInput" placeholder="Search users by username...">
+          <button class="btn btn-outline-secondary" onclick="searchUser()" type="button">
+            🔍 Search
+          </button>
+        </div>
+      </div>
+      
+      <!-- Centered Content -->
+      <h1 class="text-center">Users in Library System</h1>
+      <table class="table table-bordered w-75 mt-3 mx-auto">
+        <thead class="text-center">
+          <tr>
+            <th scope="col">jobID</th>
+            <th scope="col">Name</th>
+            <th scope="col">Email</th>
+            <th scope="col">Manage-Status</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody" class="text-center">
+          <!-- Users will be inserted here -->
+        </tbody>
+      </table>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.4/dist/js/bootstrap.bundle.min.js" integrity="sha384-YUe2LzesAfftltw+PEaao2tjU/QATaW/rOitAq67e0CT0Zi2VVRL0oC4+gAaeBKu" crossorigin="anonymous"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+          displayUsers();
+      });
+  
+      function displayUsers() {
+          const usersData = localStorage.getItem("usersData");
+          const access = localStorage.getItem("user");
+  
+          if (!usersData) {
+              document.getElementById("userTableBody").innerHTML = "<tr><td colspan='5'>No users found.</td></tr>";
+              return;
+          }
+  
+          const users = JSON.parse(usersData);
+          const tableBody = document.getElementById("userTableBody");
+          tableBody.innerHTML = ""; // Clear previous content
+  
+          users.forEach((user) => {
+              const row = `<tr>
+                              <td>${user.jobId}</td>
+                              <td>${user.username}${user.username === access ? ' <span class="badge bg-primary">★</span>' : ''}</td>
+                              <td>${user.email}</td>
+                              <td>
+                                  <button class="btn btn-sm btn-success" onclick="View('${user.jobId}')" ${user.username === access ? 'disabled' : ''}>Update</button>
+                                  <button class="btn btn-sm btn-danger" onclick="Remove('${user.jobId}')" ${user.username === access ? 'disabled' : ''}>Remove</button>
+                              </td>
+                           </tr>`;
+              tableBody.innerHTML += row;
+          });
+      }
+  
+      function View(jobId) {
+          const users = JSON.parse(localStorage.getItem("usersData"));
+          const user = users.find(u => u.jobId === jobId);
+          if (user) {
+              localStorage.setItem("userToUpdate", JSON.stringify(user));
+              window.location.href = "UpdateLib.html";
+          }
+      }
+  
+      function Remove(jobId) {
+        const users = JSON.parse(localStorage.getItem("usersData"));
+        const user = users.find(u => u.jobId === jobId);
+        if (!user) {
+            alert("User not found.");
+            return;
+        }
+
+        const confirmDelete = confirm(`Do you want to delete librarian with Job ID ${jobId}?`);
+        if (!confirmDelete) {
+            // Stay on Users.html
+            window.location.href = "Users.html";
+            return;
+        }
+
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("Authorization token missing. Please log in.");
+            return;
+        }
+
+        fetch(`http://localhost:8000/users/${user.username}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `bearer ${token}`
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Failed to delete user");
+            }
+            alert(`Librarian with Job ID ${jobId} deleted successfully.`);
+            window.location.href = "adminland.html";
+        })
+        .catch(error => {
+            console.error("Error deleting user:", error);
+            alert("Error deleting user: " + error.message);
+        });
+    }
+
+    async function searchUser() {
+        const username = document.getElementById("searchInput").value.trim();
+        const token = localStorage.getItem("token");
+        const access = localStorage.getItem("user");
+
+        if (!username) {
+            alert("Please enter a username to search.");
+            return;
+        }
+
+        if (!token) {
+            alert("Authorization token missing. Please log in.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:8000/users/${username}`, {
+                headers: {
+                    "Authorization": `bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    alert("No user found with that username.");
+                } else {
+                    throw new Error("Search failed");
+                }
+                return;
+            }
+
+            const user = await response.json();
+
+            // Inject result as a new row above all users
+            const tableBody = document.getElementById("userTableBody");
+            const existing = document.getElementById("searchRow");
+            if (existing) existing.remove(); // Remove previous search result if any
+
+            const row = document.createElement("tr");
+            row.id = "searchRow";
+            row.innerHTML = `
+                <td style="background-color: #e6f3ff">${user.jobId}</td>
+                <td style="background-color: #e6f3ff">${user.username}${user.username === access ? ' <span class="badge bg-primary">★</span>' : ''}</td>
+                <td style="background-color: #e6f3ff">${user.email}</td>
+                <td style="background-color: #e6f3ff">
+                    <button class="btn btn-sm btn-success" onclick="View('${user.jobId}')">Update</button>
+                    <button class="btn btn-sm btn-danger" onclick="Remove('${user.jobId}')">Remove</button>
+                </td>
+            `;
+            tableBody.prepend(row); // Insert at top
+        } catch (error) {
+            console.error("Error searching user:", error);
+            alert("An error occurred while searching.");
+        }
+    }
+
+  </script>
+  
+  </body>
+</html>
