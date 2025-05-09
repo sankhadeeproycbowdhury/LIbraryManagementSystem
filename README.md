@@ -17,11 +17,21 @@ Follow the steps below to set up and run the system locally:
    git clone https://github.com/sidsingh04/LIbraryManagementSystem
    cd your-repo
 
-2. **Install Python Dependencies**
+2. **Virtual Environment(Windows)**
+   ```bash
+   python -m venv venv
+   venv\Scripts\activate
+   
+3. **Virtual Environment(macOS/Linux)**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate
+   
+5. **Install Python Dependencies**
     ```bash
     pip install -r requirements.txt
 
-3. **Start the Frontend Server**
+6. **Start the Frontend Server**
     ```bash
     cd FrontEnd
     python -m http.server 3000
