@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from config.database import check_db_connection, create_tables, engine
 from controller import userController, authController, studentController, bookController, bookIssueController, adminController
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from utils import check_and_send_reminders, check_and_set_flag
+from utils import check_and_send_reminders, check_and_set_flag, check_or_create_admin
 from fastapi.middleware.cors import CORSMiddleware
 import model
 
@@ -30,7 +30,8 @@ scheduler = AsyncIOScheduler()
 async def startup():
     await check_db_connection()
     await create_tables()
-    scheduler.add_job(check_and_send_reminders, "cron", hour=17, minute=00) 
+    await check_or_create_admin()
+    scheduler.add_job(check_and_send_reminders, "cron", hour=12, minute=00) 
     scheduler.add_job(check_and_set_flag, "cron", hour=9, minute=45)
     scheduler.start()
     

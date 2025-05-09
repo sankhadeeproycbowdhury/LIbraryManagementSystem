@@ -13,21 +13,27 @@ from email.mime.text import MIMEText
 import datetime as dt
 
 from config.database import get_db, AsyncSessionLocal
-from model import Student, Book, Issue
+from model import Student, Book, Issue, User
+from dotenv import load_dotenv
+from pathlib import Path
+import os
 
+
+# Loading the .env file from the root directory
+load_dotenv()
 
 # Email Configuration
 SMTP_SERVER = "smtp.gmail.com"  
 SMTP_PORT = 587
-EMAIL_SENDER = "12211059cse@gmail.com"
-EMAIL_PASSWORD = "aewz nlgs bxlp gxub"
+EMAIL_SENDER = os.getenv("EMAIL_SENDER")  # Sender's email address
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")  # Sender's email password
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
 
 # openssl rand -hex 32
-SECRET_KEY = "b53193ccfd204ed45ce7cc1be408b75a132207018bf52f796747be6b39c7a130"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 120
+SECRET_KEY = os.getenv("JWT_SECRET") 
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated = "auto")
 
@@ -163,6 +169,26 @@ async def check_and_set_flag():
             await db.execute(revoke)
             await db.commit()
             await asyncio.sleep(1)
+            
+
+async def check_or_create_admin():
+    async with AsyncSessionLocal() as db:
+        query = await db.execute(select(User).where(User.role == True))
+        user = query.scalar_one_or_none()
+        
+        if not user:
+            new_user = User(
+                username=os.getenv("ADMIN_USERNAME"),
+                password=hash(os.getenv("ADMIN_PASSWORD")),
+                email=os.getenv("ADMIN_EMAIL"),
+                jobId=os.getenv("ADMIN_JOBID"),
+                role=True
+            )
+            
+            db.add(new_user)
+            await db.commit()
+            
+            print("Admin user created successfully.")
     
 
     
