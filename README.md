@@ -27,16 +27,25 @@ Follow the steps below to set up and run the system locally:
    python -m venv venv
    source venv/bin/activate
    
-5. **Install Python Dependencies**
+4. **Install Python Dependencies**
     ```bash
     pip install -r requirements.txt
+
+5. **Start the Frontend Server**
+    ```bash
+    set Enviroment-Varibales for the following features or
+    create local .env file in root directory and set them there :-
+    1.DB_HOST, 2.DB_USER, 3.DB_PASSWORD, 4.DB_NAME
+    5.JWT_SECRET_KEY, 6.ACCESS_TOKEN_EXPIRE_MINUTES, 7.ALGORITHM
+    8.ADMIN_USERNAME, 9.ADMIN_PASSWORD, 10.ADMIN_EMAIL, 11,ADMIN_JOBID
+    12.EMAIL_SENDER, 13,EMAIL_PASSWORD
 
 6. **Start the Frontend Server**
     ```bash
     cd FrontEnd
     python -m http.server 3000
 
-4. **Start the Backend API Server**
+7. **Start the Backend API Server**
     ```bash
     cd ../BackEnd
     uvicorn main:app --reload
