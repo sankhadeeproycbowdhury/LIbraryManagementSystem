@@ -31,10 +31,12 @@ Follow the steps below to set up and run the system locally:
     ```bash
     pip install -r requirements.txt
 
-5. **Start the Frontend Server**
+5. **Set Environment Variables**
     ```bash
-    set Enviroment-Varibales for the following features or
+    set Environment Variables for the following features or
+    
     create local .env file in root directory and set them there :-
+    
     1.DB_HOST, 2.DB_USER, 3.DB_PASSWORD, 4.DB_NAME
     5.JWT_SECRET_KEY, 6.ACCESS_TOKEN_EXPIRE_MINUTES, 7.ALGORITHM
     8.ADMIN_USERNAME, 9.ADMIN_PASSWORD, 10.ADMIN_EMAIL, 11,ADMIN_JOBID
