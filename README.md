@@ -52,4 +52,5 @@ Follow the steps below to set up and run the system locally:
     cd ../BackEnd
     uvicorn main:app --reload
 
-    For further details regarding Backend API endpoints visit http://127.0.0.1:8000/docs or http://localhost:8000/docs
+    For further details regarding Backend API endpoints visit
+    http://127.0.0.1:8000/docs or http://localhost:8000/docs
