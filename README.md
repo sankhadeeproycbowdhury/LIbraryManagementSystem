@@ -37,10 +37,10 @@ Follow the steps below to set up and run the system locally:
     
     create local .env file in root directory and set them there :-
     
-    1.DB_HOST, 2.DB_USER, 3.DB_PASSWORD, 4.DB_NAME
-    5.JWT_SECRET_KEY, 6.ACCESS_TOKEN_EXPIRE_MINUTES, 7.ALGORITHM
-    8.ADMIN_USERNAME, 9.ADMIN_PASSWORD, 10.ADMIN_EMAIL, 11,ADMIN_JOBID
-    12.EMAIL_SENDER, 13,EMAIL_PASSWORD
+    1.DB_HOST, 2.DB_USER, 3.DB_PASSWORD, 4.DB_NAME,
+    5.JWT_SECRET_KEY, 6.ACCESS_TOKEN_EXPIRE_MINUTES, 7.ALGORITHM,
+    8.ADMIN_USERNAME, 9.ADMIN_PASSWORD, 10.ADMIN_EMAIL, 11.ADMIN_JOBID,
+    12.EMAIL_SENDER, 13.EMAIL_PASSWORD
 
 6. **Start the Frontend Server**
     ```bash
@@ -51,3 +51,5 @@ Follow the steps below to set up and run the system locally:
     ```bash
     cd ../BackEnd
     uvicorn main:app --reload
+
+    For further details regarding Backend API endpoints visit http://127.0.0.1:8000/docs or http://localhost:8000/docs
